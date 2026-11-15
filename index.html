@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MeasureMate — Measure your space. Know what fits.</title>
+<meta name="description" content="MeasureMate is a private, offline-first measurement organizer. Record room, furniture, doorway, window and appliance dimensions, then check whether an item fits a space.">
+<meta name="theme-color" content="#0F766E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<script>
+/* Apply the saved theme before first paint so there is no flash. */
+(function () {
+  try {
+    var s = JSON.parse(localStorage.getItem('measuremate-settings-v1') || '{}');
+    var theme = s.theme || 'system';
+    var dark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  } catch (e) { /* fall back to light */ }
+})();
+</script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" aria-label="Main navigation">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 17 3l4 4L7 21l-4-4z"/><path d="m8 16 1.5 1.5M11 13l1.5 1.5M14 10l1.5 1.5M17 7l1.5 1.5"/></svg>
+      </span>
+      <span class="brand-text"><span class="brand-name">MeasureMate</span><span class="brand-tag">Measure your space. Know what fits.</span></span>
+    </div>
+    <nav class="nav" aria-label="Sections">
+      <button type="button" class="nav-btn is-active" data-section="dashboard" aria-current="page">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </button>
+      <button type="button" class="nav-btn" data-section="measurements">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17 17 3l4 4L7 21l-4-4z"/><path d="m8 16 1.5 1.5M11 13l1.5 1.5M14 10l1.5 1.5"/></svg>
+        My Measurements
+      </button>
+      <button type="button" class="nav-btn" data-section="fit">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+        Fit Checker
+      </button>
+      <button type="button" class="nav-btn" data-section="settings">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </button>
+    </nav>
+    <p class="sidebar-note">Private and offline. Your measurements stay in this browser.</p>
+  </aside>
+
+  <main class="content">
+    <!-- Dashboard -->
+    <section id="section-dashboard" aria-labelledby="dashboard-title">
+      <header class="page-head">
+        <div>
+          <h1 id="dashboard-title">Dashboard</h1>
+          <p class="page-sub">Your spaces and items at a glance.</p>
+        </div>
+        <button type="button" class="btn btn-primary" id="dash-add-btn">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Add Measurement
+        </button>
+      </header>
+
+      <div id="dashboard-empty" class="empty-state" hidden>
+        <span class="empty-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 17 3l4 4L7 21l-4-4z"/><path d="m8 16 1.5 1.5M11 13l1.5 1.5M14 10l1.5 1.5"/></svg>
+        </span>
+        <h2>No measurements yet</h2>
+        <p>Measure a room, a doorway, or a piece of furniture and save it here, so the next time you shop you already know what fits.</p>
+        <button type="button" class="btn btn-primary" id="empty-add-btn">Add your first measurement</button>
+      </div>
+
+      <div id="dashboard-content">
+        <div class="stat-grid" role="group" aria-label="Totals">
+          <div class="stat-card"><span class="stat-value" id="stat-total">0</span><span class="stat-label">Total measurements</span></div>
+          <div class="stat-card"><span class="stat-value" id="stat-spaces">0</span><span class="stat-label">Spaces</span></div>
+          <div class="stat-card"><span class="stat-value" id="stat-items">0</span><span class="stat-label">Items</span></div>
+        </div>
+        <h2 class="section-title">Recently updated</h2>
+        <ul class="recent-list" id="recent-list"></ul>
+        <p class="muted" id="recent-empty" hidden>No measurements yet. Add one to see it here.</p>
+      </div>
+    </section>
+
+    <!-- My Measurements -->
+    <section id="section-measurements" aria-labelledby="measurements-title" hidden>
+      <header class="page-head">
+        <div>
+          <h1 id="measurements-title">My Measurements</h1>
+          <p class="page-sub">Search, filter and manage everything you have measured.</p>
+        </div>
+        <button type="button" class="btn btn-primary" id="list-add-btn">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Add Measurement
+        </button>
+      </header>
+
+      <div class="toolbar" role="search">
+        <label class="search-box">
+          <span class="visually-hidden">Search measurements by name</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="search" id="search-input" placeholder="Search by name" autocomplete="off">
+        </label>
+        <label class="filter-field">Type
+          <select id="filter-type">
+            <option value="all">All types</option>
+            <option value="space">Available Space</option>
+            <option value="item">Item</option>
+          </select>
+        </label>
+        <label class="filter-field">Category
+          <select id="filter-category"><option value="all">All categories</option></select>
+        </label>
+        <label class="filter-field">Location
+          <select id="filter-location"><option value="all">All locations</option></select>
+        </label>
+        <label class="filter-field">Sort
+          <select id="sort-select">
+            <option value="newest">Newest updated</option>
+            <option value="oldest">Oldest updated</option>
+            <option value="name">Name A–Z</option>
+          </select>
+        </label>
+      </div>
+
+      <p class="result-count" id="result-count" role="status"></p>
+      <div id="measurements-groups"></div>
+      <div id="measurements-empty" class="empty-state" hidden>
+        <h2>Nothing matches</h2>
+        <p>Try a different search or clear the filters.</p>
+        <button type="button" class="btn btn-secondary" id="clear-filters-btn">Clear search and filters</button>
+      </div>
+    </section>
+
+    <!-- Fit Checker -->
+    <section id="section-fit" aria-labelledby="fit-title" hidden>
+      <header class="page-head">
+        <div>
+          <h1 id="fit-title">Fit Checker</h1>
+          <p class="page-sub">Compare a space with an item and see the clearance on every side.</p>
+        </div>
+      </header>
+
+      <div class="fit-grid">
+        <div class="card fit-panel">
+          <h2>Available space</h2>
+          <div class="radio-row" role="group" aria-label="Space source">
+            <label><input type="radio" name="space-source" value="saved" checked> Saved space</label>
+            <label><input type="radio" name="space-source" value="manual"> Enter dimensions</label>
+          </div>
+          <label class="field" id="space-select-wrap">Choose a saved space
+            <select id="space-select"></select>
+          </label>
+          <div id="space-manual" hidden>
+            <div class="dim-row">
+              <label class="field">Width <span class="req" aria-hidden="true">*</span><input type="number" id="space-w" inputmode="decimal" min="0" step="any" placeholder="e.g. 200"></label>
+              <label class="field">Depth <input type="number" id="space-d" inputmode="decimal" min="0" step="any" placeholder="e.g. 100"></label>
+              <label class="field">Height <input type="number" id="space-h" inputmode="decimal" min="0" step="any" placeholder="e.g. 90"></label>
+            </div>
+            <label class="field">Units
+              <select id="space-unit"><option value="cm">cm</option><option value="m">m</option><option value="in">inches</option><option value="ft">feet</option></select>
+            </label>
+          </div>
+          <p class="fit-preview" id="space-preview"></p>
+        </div>
+
+        <div class="card fit-panel">
+          <h2>Item</h2>
+          <div class="radio-row" role="group" aria-label="Item source">
+            <label><input type="radio" name="item-source" value="saved" checked> Saved item</label>
+            <label><input type="radio" name="item-source" value="manual"> Enter dimensions</label>
+          </div>
+          <label class="field" id="item-select-wrap">Choose a saved item
+            <select id="item-select"></select>
+          </label>
+          <div id="item-manual" hidden>
+            <div class="dim-row">
+              <label class="field">Width <span class="req" aria-hidden="true">*</span><input type="number" id="item-w" inputmode="decimal" min="0" step="any" placeholder="e.g. 180"></label>
+              <label class="field">Depth <input type="number" id="item-d" inputmode="decimal" min="0" step="any" placeholder="e.g. 80"></label>
+              <label class="field">Height <input type="number" id="item-h" inputmode="decimal" min="0" step="any" placeholder="e.g. 75"></label>
+            </div>
+            <label class="field">Units
+              <select id="item-unit"><option value="cm">cm</option><option value="m">m</option><option value="in">inches</option><option value="ft">feet</option></select>
+            </label>
+          </div>
+          <p class="fit-preview" id="item-preview"></p>
+        </div>
+      </div>
+
+      <div class="card fit-controls">
+        <label class="field fit-margin">Clearance margin (cm, each side)
+          <input type="number" id="fit-margin" inputmode="decimal" min="0" step="any" value="0">
+        </label>
+        <div class="fit-actions">
+          <button type="button" class="btn btn-primary" id="check-fit-btn">Check fit</button>
+          <button type="button" class="btn btn-secondary" id="clear-fit-btn">Clear</button>
+        </div>
+      </div>
+
+      <div id="fit-result" class="card fit-result" hidden aria-live="polite"></div>
+      <p class="fit-note">A fit here is dimensional only. It does not check whether the item can be delivered through doorways, around corners, up stairs, or into irregularly shaped rooms.</p>
+    </section>
+
+    <!-- Settings -->
+    <section id="section-settings" aria-labelledby="settings-title" hidden>
+      <header class="page-head">
+        <div>
+          <h1 id="settings-title">Settings</h1>
+          <p class="page-sub">Units, theme, locations and your data.</p>
+        </div>
+      </header>
+
+      <div class="settings-grid">
+        <div class="card">
+          <h2>Preferences</h2>
+          <label class="field">Default display unit
+            <select id="setting-unit">
+              <option value="cm">Centimetres (cm)</option>
+              <option value="m">Metres (m)</option>
+              <option value="in">Inches (in)</option>
+              <option value="ft">Feet (ft)</option>
+            </select>
+          </label>
+          <label class="field">Theme
+            <select id="setting-theme">
+              <option value="system">System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </label>
+          <label class="field">Default clearance margin (cm, each side)
+            <input type="number" id="setting-margin" inputmode="decimal" min="0" step="any" value="0">
+          </label>
+          <p class="field-error" id="settings-error" role="alert" hidden></p>
+          <button type="button" class="btn btn-primary" id="save-settings-btn">Save preferences</button>
+        </div>
+
+        <div class="card">
+          <h2>Locations</h2>
+          <p class="muted">Group measurements by room or place, for example Bedroom or Garage.</p>
+          <ul class="location-list" id="location-list"></ul>
+          <p class="muted" id="location-empty" hidden>No locations yet. Add one to group your measurements.</p>
+          <button type="button" class="btn btn-secondary" id="add-location-btn">Add location</button>
+        </div>
+
+        <div class="card">
+          <h2>Backup</h2>
+          <p class="muted">Export a JSON backup of all locations and measurements, or restore from one. Import checks the whole file first: an invalid file never changes your data.</p>
+          <div class="btn-row">
+            <button type="button" class="btn btn-secondary" id="export-btn">Export JSON</button>
+            <button type="button" class="btn btn-secondary" id="import-btn">Import JSON</button>
+            <input type="file" id="import-file" accept="application/json,.json" class="visually-hidden" aria-label="Choose a backup JSON file to import">
+          </div>
+          <p class="field-error" id="import-error" role="alert" hidden></p>
+          <p class="success-note" id="import-success" role="status" hidden></p>
+        </div>
+
+        <div class="card danger-card">
+          <h2>Delete all data</h2>
+          <p class="muted">Permanently deletes every measurement and location stored in this browser. This cannot be undone. Export a backup first if you want to keep a copy.</p>
+          <button type="button" class="btn btn-danger" id="clear-all-btn">Delete all data</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottomnav" aria-label="Sections">
+    <button type="button" class="nav-btn is-active" data-section="dashboard">Dashboard</button>
+    <button type="button" class="nav-btn" data-section="measurements">Measurements</button>
+    <button type="button" class="nav-btn" data-section="fit">Fit Checker</button>
+    <button type="button" class="nav-btn" data-section="settings">Settings</button>
+  </nav>
+</div>
+
+<!-- Measurement form dialog -->
+<dialog id="measure-dialog" class="dialog" aria-labelledby="measure-dialog-title">
+  <form id="measure-form" method="dialog" novalidate>
+    <h2 id="measure-dialog-title">Add measurement</h2>
+    <label class="field">Name <span class="req" aria-hidden="true">*</span>
+      <input type="text" id="m-name" maxlength="80" required autocomplete="off" placeholder="e.g. Living room sofa wall">
+    </label>
+    <p class="field-error" id="err-name" role="alert" hidden></p>
+    <div class="form-row">
+      <label class="field">Type
+        <select id="m-type">
+          <option value="space">Available Space</option>
+          <option value="item">Item</option>
+        </select>
+      </label>
+      <label class="field">Category
+        <select id="m-category"></select>
+      </label>
+    </div>
+    <label class="field">Location <span class="req" aria-hidden="true">*</span>
+      <span class="select-with-btn">
+        <select id="m-location"></select>
+        <button type="button" class="btn btn-secondary btn-small" id="m-new-location-btn">New location</button>
+      </span>
+    </label>
+    <p class="field-error" id="err-location" role="alert" hidden></p>
+    <fieldset class="dims-fieldset">
+      <legend>Dimensions <span class="req" aria-hidden="true">*</span></legend>
+      <label class="field">Units
+        <select id="m-unit">
+          <option value="cm">cm</option>
+          <option value="m">m</option>
+          <option value="in">inches</option>
+          <option value="ft">feet</option>
+        </select>
+      </label>
+      <div class="dim-row">
+        <label class="field">Width <span class="req" aria-hidden="true">*</span><input type="number" id="m-width" inputmode="decimal" min="0" step="any" placeholder="Required"></label>
+        <label class="field">Depth <input type="number" id="m-depth" inputmode="decimal" min="0" step="any" placeholder="Optional"></label>
+        <label class="field">Height <input type="number" id="m-height" inputmode="decimal" min="0" step="any" placeholder="Optional"></label>
+      </div>
+    </fieldset>
+    <p class="field-error" id="err-dims" role="alert" hidden></p>
+    <label class="field">Notes
+      <textarea id="m-notes" maxlength="500" rows="3" placeholder="Optional, up to 500 characters"></textarea>
+    </label>
+    <p class="field-error" id="err-notes" role="alert" hidden></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary" id="measure-cancel-btn">Cancel</button>
+      <button type="submit" class="btn btn-primary" id="measure-save-btn">Save measurement</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Location dialog (add / rename) -->
+<dialog id="location-dialog" class="dialog" aria-labelledby="location-dialog-title">
+  <form id="location-form" method="dialog" novalidate>
+    <h2 id="location-dialog-title">Add location</h2>
+    <label class="field">Location name <span class="req" aria-hidden="true">*</span>
+      <input type="text" id="loc-name" maxlength="80" required autocomplete="off" placeholder="e.g. Bedroom">
+    </label>
+    <p class="field-error" id="err-loc-name" role="alert" hidden></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary" id="location-cancel-btn">Cancel</button>
+      <button type="submit" class="btn btn-primary" id="location-save-btn">Save location</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Reassign / remove dialog for nonempty location delete -->
+<dialog id="reassign-dialog" class="dialog" aria-labelledby="reassign-title">
+  <form id="reassign-form" method="dialog" novalidate>
+    <h2 id="reassign-title">Location has measurements</h2>
+    <p id="reassign-text"></p>
+    <div class="radio-row radio-col" role="group" aria-label="What to do with the measurements">
+      <label><input type="radio" name="reassign-choice" value="move" checked> Move them to another location</label>
+      <label><input type="radio" name="reassign-choice" value="delete"> Delete them with the location</label>
+    </div>
+    <label class="field" id="reassign-target-wrap">Move to
+      <select id="reassign-target"></select>
+    </label>
+    <p class="field-error" id="err-reassign" role="alert" hidden></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary" id="reassign-cancel-btn">Cancel</button>
+      <button type="submit" class="btn btn-danger" id="reassign-confirm-btn">Delete location</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Generic confirm dialog -->
+<dialog id="confirm-dialog" class="dialog" aria-labelledby="confirm-title">
+  <form method="dialog">
+    <h2 id="confirm-title">Are you sure?</h2>
+    <p id="confirm-text"></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary" id="confirm-cancel-btn">Cancel</button>
+      <button type="submit" class="btn btn-danger" id="confirm-ok-btn">Delete</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Clear-all dialog (type DELETE) -->
+<dialog id="clearall-dialog" class="dialog" aria-labelledby="clearall-title">
+  <form id="clearall-form" method="dialog" novalidate>
+    <h2 id="clearall-title">Delete all data</h2>
+    <p>This permanently deletes every measurement and location. Type <strong>DELETE</strong> to confirm.</p>
+    <label class="field">Type DELETE to confirm
+      <input type="text" id="clearall-input" autocomplete="off" placeholder="DELETE">
+    </label>
+    <p class="field-error" id="err-clearall" role="alert" hidden></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary" id="clearall-cancel-btn">Cancel</button>
+      <button type="submit" class="btn btn-danger" id="clearall-confirm-btn">Delete everything</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<div id="db-error" class="db-error" role="alert" hidden></div>
+
+<script src="db.js"></script>
+<script src="measurements.js"></script>
+<script src="fit-checker.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
